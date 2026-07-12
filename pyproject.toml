@@ -1,0 +1,17 @@
+[project]
+name = "ai-news-aggregator"
+version = "0.1.0"
+description = "AI News & Newsletter Aggregator"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai",
+    "feedparser",
+    "requests",
+    "beautifulsoup4",
+    "markdown",
+    "xhtml2pdf",
+    "python-dotenv",
+    "sqlalchemy",
+    "youtube-transcript-api>=1.2.4",
+]

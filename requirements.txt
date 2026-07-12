@@ -1,0 +1,10 @@
+google-genai
+feedparser
+requests
+beautifulsoup4
+markdown
+xhtml2pdf
+python-dotenv
+sqlalchemy
+youtube-transcript-api
+youtube-transcript-api
