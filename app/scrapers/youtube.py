@@ -125,7 +125,7 @@ class YouTubeScraper:
     
 if __name__ == "__main__":
     scraper = YouTubeScraper()
-    channels = ["https://www.youtube.com/@Fireship"]
+    channels = ["https://www.youtube.com/@Fireship", "https://www.youtube.com/@matthew_berman"]
 
     print("\n" + "=" * 80)
     print("YOUTUBE SCRAPER TEST RUN".center(80))

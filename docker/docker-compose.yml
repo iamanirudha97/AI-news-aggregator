@@ -1,0 +1,23 @@
+name: ai-news-aggregator
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ai-news-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_news_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_news_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_news_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-ai_news_user} -d $${POSTGRES_DB:-ai_news_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
