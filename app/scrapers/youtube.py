@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Optional
 import os
 import re
 import requests
@@ -115,7 +115,7 @@ class YouTubeScraper:
         
         return videos
 
-    def scrape_channel(self, channel_id: str, hours: int = 150) -> list[ChannelVideo]:
+    def scrape_channel(self, channel_id: str, hours: int = 48) -> list[ChannelVideo]:
         videos = self.get_latest_videos(channel_id, hours)
         result = []
         for video in videos:
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
         print(f"  ↳ Resolved ID: {channel_id}")
         print("  • Scraping videos and transcripts (last 120 hours)...")
-        videos = scraper.scrape_channel(channel_id, hours=120)
+        videos = scraper.scrape_channel(channel_id, hours=12)
         print(f"  ↳ Found {len(videos)} video(s).")
         print("-" * 80)
 
