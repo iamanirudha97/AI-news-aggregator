@@ -28,15 +28,40 @@ class AnthropicScraper(BaseScraper):
         return anthropic_articles
 
     def url_to_markdown(self, url: str) -> Optional[str]:
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,"
+                "application/xml;q=0.9,*/*;q=0.8"
+            ),
+        }
+
         try:
-            response = requests.get(
-                url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30
-            )
+            response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
-            html = response.text
-            markdown = convert(html)
-            return markdown
-        except Exception:
+
+            result = convert(response.text)
+            markdown = result.content
+
+            if not markdown or not markdown.strip():
+                print(f"Empty markdown returned for {url}")
+                return None
+
+            return markdown.strip()
+
+        except requests.RequestException as e:
+            print(f"Error fetching {url}: {e}")
+            return None
+
+        except Exception as e:
+            print(
+                f"Error converting {url}: "
+                f"{type(e).__name__}: {e}"
+            )
             return None
 
 

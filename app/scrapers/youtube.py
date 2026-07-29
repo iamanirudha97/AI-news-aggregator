@@ -9,6 +9,14 @@ from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 from youtube_transcript_api.proxies import WebshareProxyConfig
+from typing import Optional
+from youtube_transcript_api._errors import (
+    TranscriptsDisabled,
+    NoTranscriptFound,
+    RequestBlocked,
+    IpBlocked,
+    VideoUnavailable,
+)
 
 
 class Transcript(BaseModel):
@@ -83,12 +91,62 @@ class YouTubeScraper:
 
     def get_transcript(self, video_id: str) -> Optional[Transcript]:
         try:
-            transcript = self.transcript_api.fetch(video_id)
-            text = " ".join([snippet.text for snippet in transcript.snippets])
+            fetched_transcript = self.transcript_api.fetch(
+            video_id,
+            languages=["en", "en-US", "en-GB"],
+        )
+
+            text = " ".join(
+                snippet.text.strip()
+                for snippet in fetched_transcript
+                if snippet.text.strip()
+            )
+
+            if not text:
+                print(f"[TRANSCRIPT EMPTY] video_id={video_id}")
+                return None
+
             return Transcript(text=text)
-        except (TranscriptsDisabled, NoTranscriptFound):
-            return None
-        except Exception:
+
+        except TranscriptsDisabled as exc:
+            print(f"[TRANSCRIPTS DISABLED] video_id={video_id}: {exc}")
+
+        except NoTranscriptFound as exc:
+            print(f"[NO ENGLISH TRANSCRIPT] video_id={video_id}: {exc}")
+
+        # Show which transcripts actually exist
+            try:
+                transcript_list = self.transcript_api.list(video_id)
+
+                for available in transcript_list:
+                    print(
+                        f"  Available: "
+                        f"language={available.language}, "
+                        f"code={available.language_code}, "
+                        f"generated={available.is_generated}"
+                    )
+            except Exception as list_exc:
+                print(
+                    f"[FAILED TO LIST TRANSCRIPTS] "
+                    f"video_id={video_id}: "
+                    f"{type(list_exc).__name__}: {list_exc}"
+                )
+
+        except (RequestBlocked, IpBlocked) as exc:
+            print(
+                f"[YOUTUBE BLOCKED REQUEST] video_id={video_id}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
+        except VideoUnavailable as exc:
+            print(f"[VIDEO UNAVAILABLE] video_id={video_id}: {exc}")
+
+        except Exception as exc:
+            print(
+                f"[UNEXPECTED TRANSCRIPT ERROR] video_id={video_id}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
             return None
 
     def _is_live_video(self, video_id: str) -> bool:
@@ -150,44 +208,59 @@ class YouTubeScraper:
             result.append(video.model_copy(update={"transcript": transcript.text if transcript else None}))
         return result  
     
+# if __name__ == "__main__":
+#     scraper = YouTubeScraper()
+#     channels = ["https://www.youtube.com/@Fireship", "https://www.youtube.com/@matthew_berman"]
+
+#     print("\n" + "=" * 80)
+#     print("YOUTUBE SCRAPER TEST RUN".center(80))
+#     print("=" * 80 + "\n")
+
+#     for i, channel_url in enumerate(channels, 1):
+#         print(f"[{i}/{len(channels)}] Processing: {channel_url}")
+#         print("-" * 80)
+
+#         print("Resolving channel ID...")
+#         channel_id = scraper._get_channel_id(channel_url)
+
+#         if not channel_id.startswith("UC"):
+#             print(f"Error resolving ID: {channel_id}\n")
+#             continue
+
+#         print(f"  ↳ Resolved ID: {channel_id}")
+#         print("  • Scraping videos and transcripts (last 120 hours)...")
+#         videos = scraper.scrape_channel(channel_id, hours=12)
+#         print(f"  ↳ Found {len(videos)} video(s).")
+#         print("-" * 80)
+
+#         print(f"\n--- SCRAPE RESULTS: {channel_url} ---")
+#         if not videos:
+#             print("No videos found in the specified timeframe.")
+#         else:
+#             for idx, video in enumerate(videos, 1):
+#                 print(f"\n  {idx:02d}. Title:     {video.title}")
+#                 print(f"      URL:       {video.url}")
+#                 print(f"      Published: {video.published_at.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                
+#                 if video.transcript:
+#                     snippet = video.transcript[:150].strip().replace('\n', ' ')
+#                     print(f"      Transcript (Preview):")
+#                     print(f"        \"{snippet}...\"")
+#                 else:
+#                     print(f"      Transcript: [Not Available]")
+#         print("\n" + "=" * 80 + "\n")
+
+    
 if __name__ == "__main__":
     scraper = YouTubeScraper()
-    channels = ["https://www.youtube.com/@Fireship", "https://www.youtube.com/@matthew_berman"]
 
-    print("\n" + "=" * 80)
-    print("YOUTUBE SCRAPER TEST RUN".center(80))
-    print("=" * 80 + "\n")
+    video_id = "jxGJT1weu4w"
 
-    for i, channel_url in enumerate(channels, 1):
-        print(f"[{i}/{len(channels)}] Processing: {channel_url}")
-        print("-" * 80)
+    print("Proxy configured:", scraper.transcript_api is not None)
 
-        print("Resolving channel ID...")
-        channel_id = scraper._get_channel_id(channel_url)
+    result = scraper.get_transcript(video_id)
 
-        if not channel_id.startswith("UC"):
-            print(f"Error resolving ID: {channel_id}\n")
-            continue
-
-        print(f"  ↳ Resolved ID: {channel_id}")
-        print("  • Scraping videos and transcripts (last 120 hours)...")
-        videos = scraper.scrape_channel(channel_id, hours=12)
-        print(f"  ↳ Found {len(videos)} video(s).")
-        print("-" * 80)
-
-        print(f"\n--- SCRAPE RESULTS: {channel_url} ---")
-        if not videos:
-            print("No videos found in the specified timeframe.")
-        else:
-            for idx, video in enumerate(videos, 1):
-                print(f"\n  {idx:02d}. Title:     {video.title}")
-                print(f"      URL:       {video.url}")
-                print(f"      Published: {video.published_at.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                
-                if video.transcript:
-                    snippet = video.transcript[:150].strip().replace('\n', ' ')
-                    print(f"      Transcript (Preview):")
-                    print(f"        \"{snippet}...\"")
-                else:
-                    print(f"      Transcript: [Not Available]")
-        print("\n" + "=" * 80 + "\n")
+    if result:
+        print(result.text[:500])
+    else:
+        print("Transcript retrieval failed. Check the error above.")
