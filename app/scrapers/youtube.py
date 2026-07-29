@@ -91,6 +91,18 @@ class YouTubeScraper:
         except Exception:
             return None
 
+    def _is_live_video(self, video_id: str) -> bool:
+        try:
+            url = f"https://www.youtube.com/watch?v={video_id}"
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            resp = requests.get(url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                if '"isLiveContent":true' in resp.text or '"isLive":true' in resp.text or '"isLiveBroadcast":true' in resp.text:
+                    return True
+        except Exception:
+            pass
+        return False
+
     def get_latest_videos(self, channel_id: str, hours: int = 24) -> list[ChannelVideo]:
         feed = feedparser.parse(self._get_rss_url(channel_id))
         if not feed.entries:
@@ -100,11 +112,26 @@ class YouTubeScraper:
         videos = []
         
         for entry in feed.entries:
-            if "/shorts/" in entry.link:
+            video_id = self._extract_video_id(entry.link)
+            title_lower = entry.title.lower()
+            summary_lower = entry.get("summary", "").lower()
+
+            # Skip YouTube Shorts and Live Streams / Scheduled Streams
+            is_short = "/shorts/" in entry.link
+            is_live_url = "/live/" in entry.link
+            is_live_text = (
+                "streamed live" in summary_lower
+                or "live stream" in title_lower
+                or "livestream" in title_lower
+                or title_lower.startswith("live:")
+                or "[live]" in title_lower
+                or "(live)" in title_lower
+            )
+
+            if is_short or is_live_url or is_live_text or self._is_live_video(video_id):
                 continue
             published_time = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
             if published_time >= cutoff_time:
-                video_id = self._extract_video_id(entry.link)
                 videos.append(ChannelVideo(
                     title=entry.title,
                     url=entry.link,
