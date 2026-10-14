@@ -7,9 +7,7 @@ from bs4 import BeautifulSoup
 import feedparser
 from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 from youtube_transcript_api.proxies import WebshareProxyConfig
-from typing import Optional
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
     NoTranscriptFound,
