@@ -1,5 +1,6 @@
 from typing import List, Optional
 import requests
+# pyrefly: ignore [missing-import]
 from html_to_markdown import convert
 from .base import BaseScraper, Article
 

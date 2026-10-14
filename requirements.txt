@@ -9,3 +9,4 @@ sqlalchemy
 psycopg2-binary
 youtube-transcript-api
 html-to-markdown
+openai
